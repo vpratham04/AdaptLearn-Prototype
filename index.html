@@ -93,310 +93,384 @@
     </div>
 
     <script>
-    document.addEventListener('DOMContentLoaded', function() {
-        // --- GLOBAL STATE & CONFIG ---
-        let userProfile;
-        let adaptiveEngine;
-        let currentLesson = { topicId: null, difficulty: 0 };
-        let progressChart = null;
+document.addEventListener('DOMContentLoaded', function() {
+    // --- GLOBAL STATE & CONFIG ---
+    let userProfile;
+    let adaptiveEngine;
+    let currentLesson = { topicId: null, difficulty: 0 };
+    let progressChart = null;
 
-        // --- LESSON DATABASE ---
-        // Each lesson is a "topic" for the RL engine.
-        // Difficulty: A1=0, A2=1, B1=2 (will be mapped from level)
-        const lessonDatabase = [
-            { id: 't_a1_1', goal: 'travel', level: 'A1', skill: 'writing', question: 'Translate: "The bill, please."', answer: 'o-kaikei o onegaishimasu' },
-            { id: 't_a1_2', goal: 'travel', level: 'A1', skill: 'writing', question: 'Translate: "It is two people."', answer: 'futari desu' },
-            { id: 't_a1_3', goal: 'travel', level: 'A1', skill: 'reading', question: 'What does "deguchi" mean?', answer: 'exit' },
-            { id: 'p_a1_1', goal: 'personal', level: 'A1', skill: 'writing', question: 'Translate: "I like music."', answer: 'ongaku ga suki desu' },
-            { id: 'p_a1_2', goal: 'personal', level: 'A1', skill: 'writing', question: 'Translate: "Hello"', answer: 'konnichiwa' },
-            { id: 'b_a1_1', goal: 'business', level: 'A1', skill: 'writing', question: 'Translate: "My name is John."', answer: 'watashi no namae wa john desu' },
-            { id: 't_a2_1', goal: 'travel', level: 'A2', skill: 'writing', question: 'Translate: "Where is the station?"', answer: 'eki wa doko desu ka' },
-            { id: 't_a2_2', goal: 'travel', level: 'A2', skill: 'reading', question: 'You see a sign: "Aiteimasu". Does it mean "Open" or "Closed"?', answer: 'open' },
-            { id: 'b_a2_1', goal: 'business', level: 'A2', skill: 'grammar', question: 'Which verb ending is more polite: "-masu" or "-ru"?', answer: '-masu' },
-        ];
-        
-        const difficultyMap = { 'A1': 0, 'A2': 1, 'B1': 2 };
-        const levelMap = ['A1', 'A2', 'B1']; // To reverse map from index to string
+    // --- LESSON DATABASE ---
+    // Each lesson is a "topic" for the RL engine.
+    // Difficulty: A1=0, A2=1, B1=2 (will be mapped from level)
+    const lessonDatabase = [
+        { id: 't_a1_1', goal: 'travel', level: 'A1', skill: 'writing', question: 'Translate: "The bill, please."', answer: 'o-kaikei o onegaishimasu' },
+        { id: 't_a1_2', goal: 'travel', level: 'A1', skill: 'writing', question: 'Translate: "It is two people."', answer: 'futari desu' },
+        { id: 't_a1_3', goal: 'travel', level: 'A1', skill: 'reading', question: 'What does "deguchi" mean?', answer: 'exit' },
+        { id: 'p_a1_1', goal: 'personal', level: 'A1', skill: 'writing', question: 'Translate: "I like music."', answer: 'ongaku ga suki desu' },
+        { id: 'p_a1_2', goal: 'personal', level: 'A1', skill: 'writing', question: 'Translate: "Hello"', answer: 'konnichiwa' },
+        { id: 'b_a1_1', goal: 'business', level: 'A1', skill: 'writing', question: 'Translate: "My name is John."', answer: 'watashi no namae wa john desu' },
+        { id: 't_a2_1', goal: 'travel', level: 'A2', skill: 'writing', question: 'Translate: "Where is the station?"', answer: 'eki wa doko desu ka' },
+        { id: 't_a2_2', goal: 'travel', level: 'A2', skill: 'reading', question: 'You see a sign: "Aiteimasu". Does it mean "Open" or "Closed"?', answer: 'open' },
+        { id: 'b_a2_1', goal: 'business', level: 'A2', skill: 'grammar', question: 'Which verb ending is more polite: "-masu" or "-ru"?', answer: '-masu' },
+    ];
+    
+    const difficultyMap = { 'A1': 0, 'A2': 1, 'B1': 2 };
+    const levelMap = ['A1', 'A2', 'B1']; // To reverse map from index to string
 
-        // --- REINFORCEMENT LEARNING ENGINE ---
-        class AdaptiveCurriculumEngine {
-            constructor(topics, numDifficultyLevels) {
-                this.topics = topics; // The actual lesson objects
-                this.topicMap = new Map(topics.map((topic, i) => [topic.id, i])); // Map topic ID to index
-                this.numTopics = topics.length;
-                this.numDifficultyLevels = numDifficultyLevels;
+    // --- REINFORCEMENT LEARNING ENGINE ---
+    class AdaptiveCurriculumEngine {
+        constructor(topics, numDifficultyLevels) {
+            this.topics = topics; // The actual lesson objects
+            this.topicMap = new Map(topics.map((topic, i) => [topic.id, i])); // Map topic ID to index
+            this.numTopics = topics.length;
+            this.numDifficultyLevels = numDifficultyLevels;
 
-                // Q-table: state is (topic_index, proficiency_level), action is (next_topic_index, next_difficulty)
-                // We simplify state to just be the current topic index for this implementation.
-                this.qTable = Array(this.numTopics).fill(0).map(() => 
-                    Array(this.numTopics).fill(0).map(() => 
-                        Array(this.numDifficultyLevels).fill(0).map(() => Math.random() * 0.1)
-                    )
-                );
+            // Q-table: state is (topic_index), action is (next_topic_index, next_difficulty)
+            this.qTable = Array(this.numTopics).fill(0).map(() => 
+                Array(this.numTopics).fill(0).map(() => 
+                    Array(this.numDifficultyLevels).fill(0).map(() => Math.random() * 0.1)
+                )
+            );
 
-                this.learningRate = 0.1;
-                this.discountFactor = 0.9;
-                this.epsilon = 0.2; // Higher exploration rate initially
+            this.learningRate = 0.1;
+            this.discountFactor = 0.9;
+            this.epsilon = 0.3; // Start with a slightly higher exploration rate
 
-                this.userProficiency = Array(this.numTopics).fill(0.1); // Proficiency per topic
-            }
+            this.userProficiency = Array(this.numTopics).fill(0.1); // Proficiency per topic
 
-            selectNextLesson(currentTopicId) {
-                const currentTopicIndex = this.topicMap.get(currentTopicId);
+            // --- NEW: History to prevent immediate repetition ---
+            this.lessonHistory = [];
+            // Don't repeat the last 3 questions, or fewer if not many questions exist.
+            this.historyLimit = Math.min(3, this.numTopics > 1 ? this.numTopics - 1 : 1);
+        }
 
-                // Epsilon-greedy policy
-                if (Math.random() < this.epsilon || currentTopicIndex === undefined) {
-                    // Exploration: choose a random lesson
-                    const nextTopicIndex = Math.floor(Math.random() * this.numTopics);
-                    const nextTopic = this.topics[nextTopicIndex];
-                    const nextDifficulty = difficultyMap[nextTopic.level];
-                    return { topicId: nextTopic.id, difficulty: nextDifficulty, reason: "🤖 <strong>AI says:</strong> Let's try something new to broaden your skills!" };
-                } else {
-                    // Exploitation: choose the best known action
-                    const qValuesForState = this.qTable[currentTopicIndex];
-                    let bestAction = { topicIndex: 0, difficulty: 0, qValue: -Infinity };
-
-                    for (let t = 0; t < this.numTopics; t++) {
-                        for (let d = 0; d < this.numDifficultyLevels; d++) {
-                            if (qValuesForState[t][d] > bestAction.qValue) {
-                                bestAction = { topicIndex: t, difficulty: d, qValue: qValuesForState[t][d] };
-                            }
-                        }
-                    }
-                    
-                    const nextTopic = this.topics[bestAction.topicIndex];
-                    let reason = this.getReasonForSelection(currentTopicIndex, bestAction.topicIndex);
-                    return { topicId: nextTopic.id, difficulty: bestAction.difficulty, reason: `🤖 <strong>AI says:</strong> ${reason}` };
-                }
-            }
+        getReasonForSelection(currentTopicId, nextTopicId, wasExploratory) {
+            const currentTopicIndex = this.topicMap.get(currentTopicId);
+            const nextTopicIndex = this.topicMap.get(nextTopicId);
             
-            getReasonForSelection(currentTopicIndex, nextTopicIndex) {
-                 const currentProficiency = this.userProficiency[currentTopicIndex];
-                 const nextProficiency = this.userProficiency[nextTopicIndex];
-
-                 if (nextProficiency < 0.4) {
-                    return `Based on your progress, this looks like a great topic to build up your foundation. Let's tackle it!`;
-                 }
-                 if (currentProficiency > 0.8 && nextProficiency > 0.8) {
-                    return `You're mastering this area! Let's try a related advanced topic to keep the momentum going.`;
-                 }
-                 return `Considering your recent performance, this next lesson is the optimal step for your learning path.`
+            if (wasExploratory) {
+                return `Let's try something new to broaden your skills!`;
+            }
+            if (currentTopicIndex === undefined) {
+                 return `Let's start with a foundational topic to begin your journey.`;
             }
 
-            update(lastTopicId, nextTopicId, nextDifficulty, userScore) {
-                const lastTopicIndex = this.topicMap.get(lastTopicId);
-                const nextTopicIndex = this.topicMap.get(nextTopicId);
-                if(lastTopicIndex === undefined) return; // Skip update if there's no previous state
+            const currentProficiency = this.userProficiency[currentTopicIndex];
+            const nextProficiency = this.userProficiency[nextTopicIndex];
+            const currentTopic = this.topics[currentTopicIndex];
+            const nextTopic = this.topics[nextTopicIndex];
 
-                // Reward is based on performance
-                const reward = userScore === 1 ? 1.0 : -0.5;
-
-                // Q-learning update
-                const currentQ = this.qTable[lastTopicIndex][nextTopicIndex][nextDifficulty];
-                
-                // Find max Q for the next state
-                let maxFutureQ = -Infinity;
-                const nextQ_values = this.qTable[nextTopicIndex];
-                for(let i=0; i<this.numTopics; i++){
-                    for(let j=0; j<this.numDifficultyLevels; j++){
-                        if(nextQ_values[i][j] > maxFutureQ){
-                            maxFutureQ = nextQ_values[i][j];
-                        }
-                    }
-                }
-
-                const newQ = currentQ + this.learningRate * (reward + this.discountFactor * maxFutureQ - currentQ);
-                this.qTable[lastTopicIndex][nextTopicIndex][nextDifficulty] = newQ;
-
-                // Update user proficiency on the *last* topic they were tested on
-                const proficiencyChange = userScore === 1 ? 0.1 : -0.05;
-                this.userProficiency[lastTopicIndex] = Math.max(0, Math.min(1, this.userProficiency[lastTopicIndex] + proficiencyChange));
-                
-                // Decay epsilon to reduce exploration over time
-                this.epsilon = Math.max(0.05, this.epsilon * 0.995);
+            if (nextProficiency < 0.3) {
+                return `Based on your progress, this looks like a great area to build up your foundation. Let's tackle it!`;
             }
+            if (difficultyMap[nextTopic.level] > difficultyMap[currentTopic.level] && currentProficiency > 0.7) {
+                return `You're doing great with ${currentTopic.level} material! Let's try a more challenging ${nextTopic.level} topic.`;
+            }
+            if (difficultyMap[nextTopic.level] < difficultyMap[currentTopic.level]) {
+                return `Let's revisit an earlier concept to solidify your knowledge. Repetition is key!`;
+            }
+            if (this.lessonHistory.includes(nextTopic.id)) {
+                 return `Let's circle back to this topic. The AI thinks it's the perfect time to review it for long-term memory.`;
+            }
+            return `Considering your recent performance, this next lesson is the optimal step for your learning path.`
         }
 
-        // --- UI INITIALIZATION & NAVIGATION ---
-        function initializeApp() {
-            document.querySelectorAll('.nav-tab').forEach(tab => tab.addEventListener('click', () => showSection(tab.dataset.section, tab)));
-            document.getElementById('startJourney').addEventListener('click', startLearningJourney);
-        }
 
-        function showSection(sectionName, clickedTab) {
-            document.querySelectorAll('.content-section').forEach(section => section.classList.remove('active'));
-            document.querySelectorAll('.nav-tab').forEach(tab => tab.classList.remove('active'));
-            document.getElementById(sectionName).classList.add('active');
-            if (clickedTab) clickedTab.classList.add('active');
-        }
-        
-        // --- CORE LOGIC ---
-        function startLearningJourney() {
-            const goalSelect = document.getElementById('goal');
-            const relevantLessons = lessonDatabase.filter(l => l.goal === goalSelect.value);
-
-            adaptiveEngine = new AdaptiveCurriculumEngine(relevantLessons, levelMap.length);
+        selectNextLesson(currentTopicId) {
+            const currentTopicIndex = this.topicMap.get(currentTopicId);
             
-            userProfile = {
-                goal: goalSelect.value,
-                language: 'Japanese',
-                stats: { dayStreak: 1, wordsLearned: 0 }
-            };
-
-            // First lesson has no prior state
-            currentLesson = adaptiveEngine.selectNextLesson(null);
+            // --- NEW: Filter out recently seen lessons ---
+            const recentTopicIds = this.lessonHistory;
+            let candidateTopics = this.topics.filter(topic => !recentTopicIds.includes(topic.id));
             
-            generateLearningHub();
-            renderProgress();
-            showSection('learning', document.querySelector('[data-section="learning"]'));
-        }
-
-        function generateLearningHub() {
-            const hubContent = document.getElementById('learningHubContent');
-            const lesson = adaptiveEngine.topics.find(t => t.id === currentLesson.topicId);
-            const reason = currentLesson.reason;
-
-            if (!lesson) {
-                hubContent.innerHTML = `<div class="adaptive-feedback">You've mastered all content for this goal! Try another.</div>`;
-                return;
+            // If all topics have been seen recently (edge case), allow all topics to be chosen again.
+            if (candidateTopics.length === 0) {
+                candidateTopics = this.topics;
             }
 
-            hubContent.innerHTML = `
-                <div class="adaptive-feedback">${reason}</div>
-                <div class="lesson-player">
-                    <h3>🎯 Daily Challenge: ${lesson.skill.charAt(0).toUpperCase() + lesson.skill.slice(1)} (${lesson.level})</h3>
-                    <div style="background: white; padding: 20px; border-radius: 10px; margin: 15px 0;">
-                        <h4>✏️ Your Task</h4>
-                        <p style="font-size: 1.2em; margin: 15px 0;">${lesson.question}</p>
-                        <div class="form-group">
-                            <input type="text" id="taskInput" class="form-control" placeholder="Type your answer here in Romaji..." data-answer="${lesson.answer}">
-                        </div>
-                        <div id="task-result"></div>
-                    </div>
-                    <div style="text-align: center; margin-top: 20px;">
-                        <button class="btn-primary" id="completeTaskBtn">Check Answer</button>
-                    </div>
-                </div>
-            `;
-            document.getElementById('completeTaskBtn').addEventListener('click', completeTask);
-            document.getElementById('taskInput').addEventListener('keydown', (e) => {
-                if (e.key === 'Enter') completeTask();
-            });
-        }
+            let nextLessonInfo;
+            let wasExploratory = false;
 
-        function completeTask() {
-            const input = document.getElementById('taskInput');
-            const resultDiv = document.getElementById('task-result');
-            const button = document.getElementById('completeTaskBtn');
+            // Epsilon-greedy policy, using the filtered candidate list
+            if (Math.random() < this.epsilon || currentTopicIndex === undefined) {
+                // Exploration: choose a random lesson from the candidates
+                wasExploratory = true;
+                const nextTopic = candidateTopics[Math.floor(Math.random() * candidateTopics.length)];
+                const nextDifficulty = difficultyMap[nextTopic.level];
+                nextLessonInfo = { topicId: nextTopic.id, difficulty: nextDifficulty };
 
-            const userAnswer = input.value.trim().toLowerCase();
-            const correctAnswer = input.dataset.answer.toLowerCase();
-            const userScore = (userAnswer === correctAnswer) ? 1.0 : 0.0;
-            
-            if (userScore === 1.0) {
-                resultDiv.innerHTML = `✅ Correct! Well done.`;
-                resultDiv.className = 'correct';
-                userProfile.stats.wordsLearned += correctAnswer.split(' ').length;
             } else {
-                resultDiv.innerHTML = `❌ Not quite. The correct answer is: <strong>"${input.dataset.answer}"</strong>`;
-                resultDiv.className = 'incorrect';
+                // Exploitation: choose the best known action from the candidates
+                const qValuesForState = this.qTable[currentTopicIndex];
+                let bestAction = { topicId: null, difficulty: 0, qValue: -Infinity };
+                
+                for (const topic of candidateTopics) {
+                    const topicIndex = this.topicMap.get(topic.id);
+                    for (let d = 0; d < this.numDifficultyLevels; d++) {
+                        if (qValuesForState[topicIndex][d] > bestAction.qValue) {
+                            bestAction = { topicId: topic.id, difficulty: d, qValue: qValuesForState[topicIndex][d] };
+                        }
+                    }
+                }
+                
+                // Fallback if no suitable action is found (highly unlikely)
+                if (bestAction.topicId === null) {
+                    const nextTopic = candidateTopics[Math.floor(Math.random() * candidateTopics.length)];
+                    bestAction = { topicId: nextTopic.id, difficulty: difficultyMap[nextTopic.level] };
+                }
+                nextLessonInfo = { topicId: bestAction.topicId, difficulty: bestAction.difficulty };
             }
 
-            // The core AI update step
-            const lastLessonId = currentLesson.topicId;
-            const nextLesson = adaptiveEngine.selectNextLesson(lastLessonId);
-            adaptiveEngine.update(lastLessonId, nextLesson.topicId, nextLesson.difficulty, userScore);
-            currentLesson = nextLesson;
+            const reason = this.getReasonForSelection(currentTopicId, nextLessonInfo.topicId, wasExploratory);
+            
+            // --- NEW: Update the lesson history ---
+            this.lessonHistory.push(nextLessonInfo.topicId);
+            if (this.lessonHistory.length > this.historyLimit) {
+                this.lessonHistory.shift(); // Keep the history to a fixed size
+            }
 
-            button.textContent = 'Next AI Lesson...';
-            button.onclick = generateLearningHub;
-            input.disabled = true;
+            return { ...nextLessonInfo, reason: `🤖 <strong>AI says:</strong> ${reason}` };
+        }
+        
+        update(lastTopicId, nextTopicId, nextDifficulty, userScore) {
+            const lastTopicIndex = this.topicMap.get(lastTopicId);
+            const nextTopicIndex = this.topicMap.get(nextTopicId);
+            if (lastTopicIndex === undefined) return; // Skip update if there's no previous state
 
-            renderProgress();
+            // Reward is based on performance
+            const reward = userScore === 1 ? 1.0 : -0.5;
+
+            // Q-learning update
+            const currentQ = this.qTable[lastTopicIndex][nextTopicIndex][nextDifficulty];
+            
+            // Find max Q for the next state
+            let maxFutureQ = -Infinity;
+            const nextQ_values = this.qTable[nextTopicIndex];
+            for (let i = 0; i < this.numTopics; i++) {
+                for (let j = 0; j < this.numDifficultyLevels; j++) {
+                    if (nextQ_values[i][j] > maxFutureQ) {
+                        maxFutureQ = nextQ_values[i][j];
+                    }
+                }
+            }
+
+            const newQ = currentQ + this.learningRate * (reward + this.discountFactor * maxFutureQ - currentQ);
+            this.qTable[lastTopicIndex][nextTopicIndex][nextDifficulty] = newQ;
+
+            // Update user proficiency on the *last* topic they were tested on
+            const proficiencyChange = userScore === 1 ? 0.15 : -0.07; // Slightly faster learning
+            this.userProficiency[lastTopicIndex] = Math.max(0, Math.min(1, this.userProficiency[lastTopicIndex] + proficiencyChange));
+            
+            // Decay epsilon to reduce exploration over time
+            this.epsilon = Math.max(0.05, this.epsilon * 0.995);
+        }
+    }
+
+    // --- UI INITIALIZATION & NAVIGATION ---
+    function initializeApp() {
+        document.querySelectorAll('.nav-tab').forEach(tab => tab.addEventListener('click', () => showSection(tab.dataset.section, tab)));
+        document.getElementById('startJourney').addEventListener('click', startLearningJourney);
+    }
+
+    function showSection(sectionName, clickedTab) {
+        document.querySelectorAll('.content-section').forEach(section => section.classList.remove('active'));
+        document.querySelectorAll('.nav-tab').forEach(tab => tab.classList.remove('active'));
+        document.getElementById(sectionName).classList.add('active');
+        if (clickedTab) clickedTab.classList.add('active');
+    }
+    
+    // --- CORE LOGIC ---
+    function startLearningJourney() {
+        const goalSelect = document.getElementById('goal');
+        const relevantLessons = lessonDatabase.filter(l => l.goal === goalSelect.value || l.goal === 'personal'); // Include personal goal lessons
+
+        if (relevantLessons.length === 0) {
+            alert("No lessons available for this goal yet!");
+            return;
         }
 
-        // --- UI RENDERING ---
-        function renderProgress() {
-            const progressContent = document.getElementById('progressContent');
-            if (!userProfile || !adaptiveEngine) {
-                 progressContent.innerHTML = `<p style="text-align:center;">Your progress will be shown here once you begin your lessons.</p>`;
-                 return;
-            }
-            const { stats } = userProfile;
+        adaptiveEngine = new AdaptiveCurriculumEngine(relevantLessons, levelMap.length);
+        
+        userProfile = {
+            goal: goalSelect.value,
+            language: 'Japanese',
+            stats: { dayStreak: 1, wordsLearned: 0 }
+        };
 
-            progressContent.innerHTML = `
-                <div class="stats-grid">
-                    <div class="stat-card"><div class="stat-number">${stats.dayStreak}</div><div>Day Streak</div></div>
-                    <div class="stat-card"><div class="stat-number">${stats.wordsLearned}</div><div>Words Learned</div></div>
-                    <div class="stat-card"><div class="stat-number">${adaptiveEngine.epsilon.toFixed(2)}</div><div>AI Exploration Rate</div></div>
+        // First lesson has no prior state
+        currentLesson = adaptiveEngine.selectNextLesson(null);
+        
+        generateLearningHub();
+        renderProgress();
+        showSection('learning', document.querySelector('[data-section="learning"]'));
+    }
+
+    function generateLearningHub() {
+        const hubContent = document.getElementById('learningHubContent');
+        const lesson = adaptiveEngine.topics.find(t => t.id === currentLesson.topicId);
+        const reason = currentLesson.reason;
+
+        if (!lesson) {
+            hubContent.innerHTML = `<div class="adaptive-feedback">You've mastered all content for this goal! Try another.</div>`;
+            return;
+        }
+
+        hubContent.innerHTML = `
+            <div class="adaptive-feedback">${reason}</div>
+            <div class="lesson-player">
+                <h3>🎯 Daily Challenge: ${lesson.skill.charAt(0).toUpperCase() + lesson.skill.slice(1)} (${lesson.level})</h3>
+                <div style="background: white; padding: 20px; border-radius: 10px; margin: 15px 0;">
+                    <h4>✏️ Your Task</h4>
+                    <p style="font-size: 1.2em; margin: 15px 0;">${lesson.question}</p>
+                    <div class="form-group">
+                        <input type="text" id="taskInput" class="form-control" placeholder="Type your answer here in Romaji..." data-answer="${lesson.answer}">
+                    </div>
+                    <div id="task-result"></div>
                 </div>
-                <div style="background: white; padding: 25px; border-radius: 15px; margin-top: 20px;">
-                    <h3>📊 AI-Assessed Topic Mastery</h3>
-                    <p style="text-align:center; color: #666; margin-bottom: 20px;">The AI's current understanding of your proficiency on each topic.</p>
-                    <canvas id="progressChart"></canvas>
-                </div>`;
-            
-            const topicLabels = adaptiveEngine.topics.map(t => t.question);
-            const proficiencyData = adaptiveEngine.userProficiency;
-
-            const ctx = document.getElementById('progressChart').getContext('2d');
-            if(progressChart) {
-                progressChart.destroy();
+                <div style="text-align: center; margin-top: 20px;">
+                    <button class="btn-primary" id="completeTaskBtn">Check Answer</button>
+                </div>
+            </div>
+        `;
+        document.getElementById('completeTaskBtn').addEventListener('click', completeTask);
+        document.getElementById('taskInput').addEventListener('keydown', (e) => {
+            if (e.key === 'Enter') {
+                e.preventDefault();
+                completeTask();
             }
-            progressChart = new Chart(ctx, {
-                type: 'radar',
-                data: {
-                    labels: topicLabels,
-                    datasets: [{
-                        label: 'Mastery',
-                        data: proficiencyData.map(p => p * 100), // convert to percentage
-                        fill: true,
-                        backgroundColor: 'rgba(102, 126, 234, 0.2)',
-                        borderColor: 'rgb(102, 126, 234)',
-                        pointBackgroundColor: 'rgb(102, 126, 234)',
-                        pointBorderColor: '#fff',
-                        pointHoverBackgroundColor: '#fff',
-                        pointHoverBorderColor: 'rgb(102, 126, 234)'
-                    }]
+        });
+        document.getElementById('taskInput').focus();
+    }
+
+    function completeTask() {
+        const input = document.getElementById('taskInput');
+        if (input.disabled) return; // Prevent multiple submissions
+
+        const resultDiv = document.getElementById('task-result');
+        const button = document.getElementById('completeTaskBtn');
+
+        const userAnswer = input.value.trim().toLowerCase();
+        const correctAnswer = input.dataset.answer.toLowerCase();
+        const userScore = (userAnswer === correctAnswer) ? 1.0 : 0.0;
+        
+        if (userScore === 1.0) {
+            resultDiv.innerHTML = `✅ Correct! Well done.`;
+            resultDiv.className = 'correct';
+            userProfile.stats.wordsLearned += correctAnswer.split(' ').length;
+        } else {
+            resultDiv.innerHTML = `❌ Not quite. The correct answer is: <strong>"${input.dataset.answer}"</strong>`;
+            resultDiv.className = 'incorrect';
+        }
+
+        // The core AI update step
+        const lastLessonId = currentLesson.topicId;
+        const nextLesson = adaptiveEngine.selectNextLesson(lastLessonId);
+        adaptiveEngine.update(lastLessonId, nextLesson.topicId, nextLesson.difficulty, userScore);
+        currentLesson = nextLesson;
+
+        button.textContent = 'Next AI Lesson...';
+        button.onclick = () => {
+            // Re-enable input and clear result for the next round
+            generateLearningHub();
+        };
+        input.disabled = true;
+
+        renderProgress();
+    }
+
+    // --- UI RENDERING ---
+    function renderProgress() {
+        const progressContent = document.getElementById('progressContent');
+        if (!userProfile || !adaptiveEngine) {
+            progressContent.innerHTML = `<p style="text-align:center;">Your progress will be shown here once you begin your lessons.</p>`;
+            return;
+        }
+        const { stats } = userProfile;
+
+        progressContent.innerHTML = `
+            <div class="stats-grid">
+                <div class="stat-card"><div class="stat-number">${stats.dayStreak}</div><div>Day Streak</div></div>
+                <div class="stat-card"><div class="stat-number">${stats.wordsLearned}</div><div>Words Learned</div></div>
+                <div class="stat-card"><div class="stat-number">${adaptiveEngine.epsilon.toFixed(2)}</div><div>AI Exploration Rate</div></div>
+            </div>
+            <div style="background: white; padding: 25px; border-radius: 15px; margin-top: 20px;">
+                <h3>📊 AI-Assessed Topic Mastery</h3>
+                <p style="text-align:center; color: #666; margin-bottom: 20px;">The AI's current understanding of your proficiency on each topic.</p>
+                <canvas id="progressChart"></canvas>
+            </div>`;
+        
+        const topicLabels = adaptiveEngine.topics.map(t => `${t.skill.slice(0,1).toUpperCase()}: ${t.question.substring(0, 20)}...`);
+        const proficiencyData = adaptiveEngine.userProficiency;
+
+        const ctx = document.getElementById('progressChart').getContext('2d');
+        if (progressChart) {
+            progressChart.destroy();
+        }
+        progressChart = new Chart(ctx, {
+            type: 'radar',
+            data: {
+                labels: topicLabels,
+                datasets: [{
+                    label: 'Mastery',
+                    data: proficiencyData.map(p => p * 100), // convert to percentage
+                    fill: true,
+                    backgroundColor: 'rgba(102, 126, 234, 0.2)',
+                    borderColor: 'rgb(102, 126, 234)',
+                    pointBackgroundColor: 'rgb(102, 126, 234)',
+                    pointBorderColor: '#fff',
+                    pointHoverBackgroundColor: '#fff',
+                    pointHoverBorderColor: 'rgb(102, 126, 234)'
+                }]
+            },
+            options: {
+                 responsive: true,
+                 maintainAspectRatio: false,
+                elements: {
+                    line: {
+                        borderWidth: 3
+                    }
                 },
-                options: {
-                    elements: {
-                        line: {
-                            borderWidth: 3
+                scales: {
+                    r: {
+                        angleLines: { display: false },
+                        suggestedMin: 0,
+                        suggestedMax: 100,
+                         pointLabels: {
+                            font: {
+                                size: 11
+                            },
+                             color: '#444'
+                        },
+                        ticks: {
+                            backdropColor: 'transparent',
+                            color: '#999'
                         }
-                    },
-                    scales: {
-                        r: {
-                            angleLines: { display: false },
-                            suggestedMin: 0,
-                            suggestedMax: 100,
-                            ticks: {
-                                backdropColor: 'transparent',
-                                color: '#999'
-                            }
-                        }
-                    },
-                    plugins: {
-                        legend: { display: false },
-                         tooltip: {
-                            callbacks: {
-                                label: function(context) {
-                                    let label = context.dataset.label || '';
-                                    if (label) { label += ': '; }
-                                    if (context.parsed.r !== null) {
-                                        label += Math.round(context.parsed.r) + '%';
-                                    }
-                                    return label;
+                    }
+                },
+                plugins: {
+                    legend: { display: false },
+                      tooltip: {
+                        callbacks: {
+                            label: function(context) {
+                                let label = adaptiveEngine.topics[context.dataIndex].question || '';
+                                if (label) {
+                                    label = label.length > 40 ? label.substring(0, 40) + '...' : label;
                                 }
+                                let mastery = `Mastery: ${Math.round(context.parsed.r)}%`;
+                                return [label, mastery];
                             }
                         }
                     }
                 }
-            });
-        }
+            }
+        });
+         // Adjust canvas parent height
+        ctx.canvas.parentElement.style.height = `${Math.max(400, adaptiveEngine.topics.length * 50)}px`;
+    }
 
-        initializeApp();
-    });
-    </script>
+    initializeApp();
+});
+</script>
 </body>
 </html>
