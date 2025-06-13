@@ -101,18 +101,54 @@ document.addEventListener('DOMContentLoaded', function() {
     let progressChart = null;
 
     // --- LESSON DATABASE ---
-    // Each lesson is a "topic" for the RL engine.
-    // Difficulty: A1=0, A2=1, B1=2 (will be mapped from level)
     const lessonDatabase = [
-        { id: 't_a1_1', goal: 'travel', level: 'A1', skill: 'writing', question: 'Translate: "The bill, please."', answer: 'o-kaikei o onegaishimasu' },
-        { id: 't_a1_2', goal: 'travel', level: 'A1', skill: 'writing', question: 'Translate: "It is two people."', answer: 'futari desu' },
-        { id: 't_a1_3', goal: 'travel', level: 'A1', skill: 'reading', question: 'What does "deguchi" mean?', answer: 'exit' },
-        { id: 'p_a1_1', goal: 'personal', level: 'A1', skill: 'writing', question: 'Translate: "I like music."', answer: 'ongaku ga suki desu' },
-        { id: 'p_a1_2', goal: 'personal', level: 'A1', skill: 'writing', question: 'Translate: "Hello"', answer: 'konnichiwa' },
-        { id: 'b_a1_1', goal: 'business', level: 'A1', skill: 'writing', question: 'Translate: "My name is John."', answer: 'watashi no namae wa john desu' },
-        { id: 't_a2_1', goal: 'travel', level: 'A2', skill: 'writing', question: 'Translate: "Where is the station?"', answer: 'eki wa doko desu ka' },
-        { id: 't_a2_2', goal: 'travel', level: 'A2', skill: 'reading', question: 'You see a sign: "Aiteimasu". Does it mean "Open" or "Closed"?', answer: 'open' },
-        { id: 'b_a2_1', goal: 'business', level: 'A2', skill: 'grammar', question: 'Which verb ending is more polite: "-masu" or "-ru"?', answer: '-masu' },
+        // --- Personal Goal (A1 - Basics) ---
+        { id: 'p_a1_1', goal: 'personal', level: 'A1', skill: 'writing', question: 'Translate: "Hello"', answer: 'konnichiwa' },
+        { id: 'p_a1_2', goal: 'personal', level: 'A1', skill: 'writing', question: 'Translate: "Good morning"', answer: 'ohayou gozaimasu' },
+        { id: 'p_a1_3', goal: 'personal', level: 'A1', skill: 'writing', question: 'Translate: "Thank you"', answer: 'arigatou gozaimasu' },
+        { id: 'p_a1_4', goal: 'personal', level: 'A1', skill: 'writing', question: 'Translate: "Yes"', answer: 'hai' },
+        { id: 'p_a1_5', goal: 'personal', level: 'A1', skill: 'writing', question: 'Translate: "No"', answer: 'iie' },
+        { id: 'p_a1_6', goal: 'personal', level: 'A1', skill: 'reading', question: 'What does "sumimasen" mean?', answer: 'excuse me' },
+        { id: 'p_a1_7', goal: 'personal', level: 'A1', skill: 'grammar', question: 'Which particle ends a question sentence?', answer: 'ka' },
+        { id: 'p_a1_8', goal: 'personal', level: 'A1', skill: 'writing', question: 'Translate: "I am a student."', answer: 'watashi wa gakusei desu' },
+
+        // --- Personal Goal (A2 - Building on Basics) ---
+        { id: 'p_a2_1', goal: 'personal', level: 'A2', skill: 'writing', question: 'Translate: "What is your hobby?"', answer: 'shumi wa nan desu ka' },
+        { id: 'p_a2_2', goal: 'personal', level: 'A2', skill: 'writing', question: 'Translate: "I like movies."', answer: 'eiga ga suki desu' },
+        { id: 'p_a2_3', goal: 'personal', level: 'A2', skill: 'reading', question: 'What does "wakarimasen" mean?', answer: 'i don\'t understand' },
+        { id: 'p_a2_4', goal: 'personal', level: 'A2', skill: 'writing', question: 'Translate: "The weather is good today."', answer: 'kyou wa tenki ga ii desu' },
+        { id: 'p_a2_5', goal: 'personal', level: 'A2', skill: 'grammar', question: 'Fill in the blank: "Nihongo o ___ shimasu."', answer: 'benkyou' },
+
+        // --- Travel Goal (A1 - Essentials) ---
+        { id: 't_a1_1', goal: 'travel', level: 'A1', skill: 'writing', question: 'Translate: "Where is the toilet?"', answer: 'toire wa doko desu ka' },
+        { id: 't_a1_2', goal: 'travel', level: 'A1', skill: 'writing', question: 'Translate: "This, please."', answer: 'kore o onegaishimasu' },
+        { id: 't_a1_3', goal: 'travel', level: 'A1', skill: 'writing', question: 'Translate: "How much is it?"', answer: 'ikura desu ka' },
+        { id: 't_a1_4', goal: 'travel', level: 'A1', skill: 'reading', question: 'What does "eki" mean?', answer: 'station' },
+        { id: 't_a1_5', goal: 'travel', level: 'A1', skill: 'reading', question: 'What does "mizu" mean?', answer: 'water' },
+        { id: 't_a1_6', goal: 'travel', level: 'A1', skill: 'writing', question: 'Translate: "The bill, please."', answer: 'o-kaikei o onegaishimasu' },
+        { id: 't_a1_7', goal: 'travel', level: 'A1', skill: 'reading', question: 'What does "deguchi" mean?', answer: 'exit' },
+
+        // --- Travel Goal (A2 - Navigation & Ordering) ---
+        { id: 't_a2_1', goal: 'travel', level: 'A2', skill: 'writing', question: 'Translate: "I want to go to Tokyo Tower."', answer: 'tokyo tawa ni ikitai desu' },
+        { id: 't_a2_2', goal: 'travel', level: 'A2', skill: 'writing', question: 'Translate: "Do you have a menu in English?"', answer: 'eigo no menyu wa arimasu ka' },
+        { id: 't_a2_3', goal: 'travel', level: 'A2', skill: 'reading', question: 'You see a sign: "Aiteimasu". Does it mean "Open" or "Closed"?', answer: 'open' },
+        { id: 't_a2_4', goal: 'travel', level: 'A2', skill: 'grammar', question: 'Which particle indicates a destination?', answer: 'ni' },
+        { id: 't_a2_5', goal: 'travel', level: 'A2', skill: 'writing', question: 'Translate: "What time does it open?"', answer: 'nanji ni akimasu ka' },
+        { id: 't_a2_6', goal: 'travel', level: 'A2', skill: 'writing', question: 'Translate: "Is this the train for Shinjuku?"', answer: 'kore wa shinjuku yuki no densha desu ka' },
+
+        // --- Business Goal (A1 - Formal Basics) ---
+        { id: 'b_a1_1', goal: 'business', level: 'A1', skill: 'writing', question: 'Translate: "My name is Tanaka."', answer: 'watashi no namae wa tanaka desu' },
+        { id: 'b_a1_2', goal: 'business', level: 'A1', skill: 'writing', question: 'Translate: "Nice to meet you (first time)."' , answer: 'hajimemashite' },
+        { id: 'b_a1_3', goal: 'business', level: 'A1', skill: 'reading', question: 'What does "meishi" mean?', answer: 'business card' },
+        { id: 'b_a1_4', goal: 'business', level: 'A1', skill: 'grammar', question: 'Which is more polite: "arigatou" or "arigatou gozaimasu"?', answer: 'arigatou gozaimasu' },
+        { id: 'b_a1_5', goal: 'business', level: 'A1', skill: 'writing', question: 'Translate: "I am from America."', answer: 'amerika kara kimashita' },
+
+        // --- Business Goal (A2 - Basic Interactions) ---
+        { id: 'b_a2_1', goal: 'business', level: 'A2', skill: 'writing', question: 'Translate: "This is my business card."', answer: 'kochira wa watashi no meishi desu' },
+        { id: 'b_a2_2', goal: 'business', level: 'A2', skill: 'writing', question: 'Translate: "I look forward to working with you."', answer: 'yoroshiku onegaishimasu' },
+        { id: 'b_a2_3', goal: 'business', level: 'A2', skill: 'reading', question: 'What does "kaigi" mean?', answer: 'meeting' },
+        { id: 'b_a2_4', goal: 'business', level: 'A2', skill: 'writing', question: 'Translate: "Could you please say that again?"', answer: 'mou ichido onegaishimasu' },
+        { id: 'b_a2_5', goal: 'business', level: 'A2', skill: 'grammar', question: 'Which verb ending is more polite for formal speech: "-masu" or "-ru"?', answer: '-masu' }
     ];
     
     const difficultyMap = { 'A1': 0, 'A2': 1, 'B1': 2 };
@@ -139,10 +175,10 @@ document.addEventListener('DOMContentLoaded', function() {
 
             this.userProficiency = Array(this.numTopics).fill(0.1); // Proficiency per topic
 
-            // --- NEW: History to prevent immediate repetition ---
+            // --- History to prevent immediate repetition ---
             this.lessonHistory = [];
-            // Don't repeat the last 3 questions, or fewer if not many questions exist.
-            this.historyLimit = Math.min(3, this.numTopics > 1 ? this.numTopics - 1 : 1);
+            // Don't repeat the last X questions, or fewer if not many questions exist.
+            this.historyLimit = Math.min(5, this.numTopics > 1 ? this.numTopics - 1 : 1);
         }
 
         getReasonForSelection(currentTopicId, nextTopicId, wasExploratory) {
@@ -180,7 +216,7 @@ document.addEventListener('DOMContentLoaded', function() {
         selectNextLesson(currentTopicId) {
             const currentTopicIndex = this.topicMap.get(currentTopicId);
             
-            // --- NEW: Filter out recently seen lessons ---
+            // --- Filter out recently seen lessons ---
             const recentTopicIds = this.lessonHistory;
             let candidateTopics = this.topics.filter(topic => !recentTopicIds.includes(topic.id));
             
@@ -224,7 +260,7 @@ document.addEventListener('DOMContentLoaded', function() {
 
             const reason = this.getReasonForSelection(currentTopicId, nextLessonInfo.topicId, wasExploratory);
             
-            // --- NEW: Update the lesson history ---
+            // --- Update the lesson history ---
             this.lessonHistory.push(nextLessonInfo.topicId);
             if (this.lessonHistory.length > this.historyLimit) {
                 this.lessonHistory.shift(); // Keep the history to a fixed size
@@ -450,7 +486,7 @@ document.addEventListener('DOMContentLoaded', function() {
                 },
                 plugins: {
                     legend: { display: false },
-                      tooltip: {
+                     tooltip: {
                         callbacks: {
                             label: function(context) {
                                 let label = adaptiveEngine.topics[context.dataIndex].question || '';
@@ -466,7 +502,7 @@ document.addEventListener('DOMContentLoaded', function() {
             }
         });
          // Adjust canvas parent height
-        ctx.canvas.parentElement.style.height = `${Math.max(400, adaptiveEngine.topics.length * 50)}px`;
+         ctx.canvas.parentElement.style.height = `${Math.max(400, adaptiveEngine.topics.length * 40)}px`;
     }
 
     initializeApp();
