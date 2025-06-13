@@ -1,0 +1,402 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>AdaptLearn - AI-Powered Language Learning</title>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body { font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); min-height: 100vh; color: #333; }
+        .container { max-width: 1200px; margin: 0 auto; padding: 20px; }
+        .header { background: rgba(255, 255, 255, 0.95); backdrop-filter: blur(10px); border-radius: 20px; padding: 20px; margin-bottom: 30px; box-shadow: 0 8px 32px rgba(0, 0, 0, 0.1); }
+        .logo { font-size: 2.5em; font-weight: bold; background: linear-gradient(45deg, #667eea, #764ba2); -webkit-background-clip: text; -webkit-text-fill-color: transparent; text-align: center; margin-bottom: 10px; }
+        .tagline { text-align: center; color: #666; font-size: 1.1em; }
+        .nav-tabs { display: flex; justify-content: center; gap: 20px; margin-top: 20px; flex-wrap: wrap; }
+        .nav-tab { padding: 12px 24px; background: linear-gradient(45deg, #667eea, #764ba2); color: white; border: none; border-radius: 25px; cursor: pointer; font-size: 1em; transition: all 0.3s ease; box-shadow: 0 4px 15px rgba(102, 126, 234, 0.3); }
+        .nav-tab:hover { transform: translateY(-2px); box-shadow: 0 6px 20px rgba(102, 126, 234, 0.4); }
+        .nav-tab.active { background: linear-gradient(45deg, #764ba2, #667eea); transform: translateY(-1px); }
+        .content-section { display: none; background: rgba(255, 255, 255, 0.95); backdrop-filter: blur(10px); border-radius: 20px; padding: 30px; box-shadow: 0 8px 32px rgba(0, 0, 0, 0.1); margin-bottom: 20px; }
+        .content-section.active { display: block; animation: fadeIn 0.5s ease-in; }
+        @keyframes fadeIn { from { opacity: 0; transform: translateY(20px); } to { opacity: 1; transform: translateY(0); } }
+        .feature-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(300px, 1fr)); gap: 20px; margin-top: 20px; }
+        .feature-card { background: linear-gradient(135deg, #f5f7ff 0%, #e8f0ff 100%); padding: 25px; border-radius: 15px; border-left: 5px solid #667eea; transition: transform 0.3s ease; }
+        .feature-card:hover { transform: translateY(-5px); }
+        .feature-icon { font-size: 2.5em; margin-bottom: 15px; }
+        .feature-title { font-size: 1.3em; font-weight: bold; margin-bottom: 10px; color: #333; }
+        .onboarding-form { max-width: 600px; margin: 0 auto; }
+        .form-group { margin-bottom: 25px; }
+        .form-group label { display: block; margin-bottom: 8px; font-weight: bold; color: #333; }
+        .form-control { width: 100%; padding: 12px; border: 2px solid #e0e0e0; border-radius: 10px; font-size: 1em; transition: border-color 0.3s ease; }
+        .form-control:focus { outline: none; border-color: #667eea; box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.1); }
+        .language-option { padding: 15px; text-align: center; border: 2px solid #e0e0e0; border-radius: 10px; cursor: pointer; transition: all 0.3s ease; max-width: 200px; margin: 15px auto; }
+        .language-option:hover, .language-option.selected { border-color: #667eea; background: rgba(102, 126, 234, 0.1); transform: scale(1.05); }
+        .btn-primary { background: linear-gradient(45deg, #667eea, #764ba2); color: white; border: none; padding: 15px 30px; border-radius: 25px; font-size: 1.1em; cursor: pointer; transition: all 0.3s ease; display: block; margin: 20px auto; }
+        .btn-primary:hover { transform: translateY(-2px); box-shadow: 0 6px 20px rgba(102, 126, 234, 0.4); }
+        .lesson-player { background: #f8f9ff; padding: 25px; border-radius: 15px; margin: 20px 0; }
+        .progress-bar { width: 100%; height: 20px; background: #e0e0e0; border-radius: 10px; overflow: hidden; margin: 10px 0; }
+        .progress-fill { height: 100%; background: linear-gradient(45deg, #667eea, #764ba2); transition: width 0.5s ease; }
+        .stats-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 20px; margin: 20px 0; }
+        .stat-card { background: linear-gradient(135deg, #fff 0%, #f8f9ff 100%); padding: 20px; border-radius: 15px; text-align: center; border: 2px solid #e0e0e0; }
+        .stat-number { font-size: 2.5em; font-weight: bold; color: #667eea; margin-bottom: 5px; }
+        .adaptive-feedback { background: #e8f5e8; border-left: 5px solid #4caf50; padding: 15px; margin-bottom: 20px; border-radius: 8px; color: #333; }
+        .adaptive-feedback strong { font-weight: bold; color: #667eea; }
+        #task-result { padding: 15px; border-radius: 8px; margin-top: 15px; text-align: center; font-weight: bold; }
+        #task-result.correct { background: #e8f5e8; color: #4caf50; }
+        #task-result.incorrect { background: #ffebee; color: #d32f2f; }
+        @media (max-width: 768px) { .container { padding: 10px; } .nav-tabs { flex-direction: column; align-items: center; } .nav-tab { width: 200px; text-align: center; } }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <header class="header">
+            <div class="logo">🌍 AdaptLearn</div>
+            <div class="tagline">The Truly AI-Powered Language Learning Platform</div>
+            <nav class="nav-tabs">
+                <button class="nav-tab active" data-section="home">Home</button>
+                <button class="nav-tab" data-section="onboarding">Get Started</button>
+                <button class="nav-tab" data-section="learning">Learning Hub</button>
+                <button class="nav-tab" data-section="progress">Progress</button>
+            </nav>
+        </header>
+
+        <main>
+            <section class="content-section active" id="home">
+                <h2 style="text-align: center; margin-bottom: 30px; font-size: 2.2em; color: #333;">A Revolutionary Language Learning Experience</h2>
+                <div class="feature-grid">
+                    <div class="feature-card"><div class="feature-icon">🧠</div><div class="feature-title">True AI Personalization</div><p>Our Reinforcement Learning AI doesn't just find your weak spots—it learns the optimal path for <strong>you</strong> to master the language.</p></div>
+                    <div class="feature-card"><div class="feature-icon">📈</div><div class="feature-title">Transparent Progress</div><p>See exactly how the AI understands your skills. Your progress dashboard visualizes your mastery of every single topic.</p></div>
+                    <div class="feature-card"><div class="feature-icon">🧮</div><div class="feature-title">Intelligent Spaced Repetition</div><p>The AI knows the perfect time to bring back topics, ensuring long-term retention based on proven learning science.</p></div>
+                    <div class="feature-card"><div class="feature-icon">🏆</div><div class="feature-title">Gamified & Engaging</div><p>Stay motivated with an experience that is challenging but never frustrating, thanks to our AI's careful lesson selection.</p></div>
+                </div>
+            </section>
+
+            <section class="content-section" id="onboarding">
+                <h2 style="text-align: center; margin-bottom: 30px;">Let's Personalize Your Learning Journey</h2>
+                <div class="onboarding-form">
+                    <div class="form-group"><label>Your Target Language:</label><div class="language-option selected" data-language="japanese">🇯🇵<br>Japanese</div></div>
+                    <div class="form-group"><label for="goal">Primary Learning Goal:</label><select class="form-control" id="goal"><option value="travel">Travel & Tourism</option><option value="business">Business Communication</option><option value="personal">Personal Interest</option></select></div>
+                    <button class="btn-primary" id="startJourney">Activate AI Learning Plan</button>
+                </div>
+            </section>
+
+            <section class="content-section" id="learning">
+                <h2 style="text-align: center; margin-bottom: 30px;">Today's AI-Curated Session</h2>
+                <div id="learningHubContent"><p style="text-align:center;">Please complete the "Get Started" section for the AI to generate your personalized learning plan.</p></div>
+            </section>
+
+            <section class="content-section" id="progress">
+                <h2 style="text-align: center; margin-bottom: 30px;">Your AI-Tracked Learning Journey</h2>
+                <div id="progressContent"><p style="text-align:center;">Your progress will be shown here once you begin your lessons.</p></div>
+            </section>
+        </main>
+    </div>
+
+    <script>
+    document.addEventListener('DOMContentLoaded', function() {
+        // --- GLOBAL STATE & CONFIG ---
+        let userProfile;
+        let adaptiveEngine;
+        let currentLesson = { topicId: null, difficulty: 0 };
+        let progressChart = null;
+
+        // --- LESSON DATABASE ---
+        // Each lesson is a "topic" for the RL engine.
+        // Difficulty: A1=0, A2=1, B1=2 (will be mapped from level)
+        const lessonDatabase = [
+            { id: 't_a1_1', goal: 'travel', level: 'A1', skill: 'writing', question: 'Translate: "The bill, please."', answer: 'o-kaikei o onegaishimasu' },
+            { id: 't_a1_2', goal: 'travel', level: 'A1', skill: 'writing', question: 'Translate: "It is two people."', answer: 'futari desu' },
+            { id: 't_a1_3', goal: 'travel', level: 'A1', skill: 'reading', question: 'What does "deguchi" mean?', answer: 'exit' },
+            { id: 'p_a1_1', goal: 'personal', level: 'A1', skill: 'writing', question: 'Translate: "I like music."', answer: 'ongaku ga suki desu' },
+            { id: 'p_a1_2', goal: 'personal', level: 'A1', skill: 'writing', question: 'Translate: "Hello"', answer: 'konnichiwa' },
+            { id: 'b_a1_1', goal: 'business', level: 'A1', skill: 'writing', question: 'Translate: "My name is John."', answer: 'watashi no namae wa john desu' },
+            { id: 't_a2_1', goal: 'travel', level: 'A2', skill: 'writing', question: 'Translate: "Where is the station?"', answer: 'eki wa doko desu ka' },
+            { id: 't_a2_2', goal: 'travel', level: 'A2', skill: 'reading', question: 'You see a sign: "Aiteimasu". Does it mean "Open" or "Closed"?', answer: 'open' },
+            { id: 'b_a2_1', goal: 'business', level: 'A2', skill: 'grammar', question: 'Which verb ending is more polite: "-masu" or "-ru"?', answer: '-masu' },
+        ];
+        
+        const difficultyMap = { 'A1': 0, 'A2': 1, 'B1': 2 };
+        const levelMap = ['A1', 'A2', 'B1']; // To reverse map from index to string
+
+        // --- REINFORCEMENT LEARNING ENGINE ---
+        class AdaptiveCurriculumEngine {
+            constructor(topics, numDifficultyLevels) {
+                this.topics = topics; // The actual lesson objects
+                this.topicMap = new Map(topics.map((topic, i) => [topic.id, i])); // Map topic ID to index
+                this.numTopics = topics.length;
+                this.numDifficultyLevels = numDifficultyLevels;
+
+                // Q-table: state is (topic_index, proficiency_level), action is (next_topic_index, next_difficulty)
+                // We simplify state to just be the current topic index for this implementation.
+                this.qTable = Array(this.numTopics).fill(0).map(() => 
+                    Array(this.numTopics).fill(0).map(() => 
+                        Array(this.numDifficultyLevels).fill(0).map(() => Math.random() * 0.1)
+                    )
+                );
+
+                this.learningRate = 0.1;
+                this.discountFactor = 0.9;
+                this.epsilon = 0.2; // Higher exploration rate initially
+
+                this.userProficiency = Array(this.numTopics).fill(0.1); // Proficiency per topic
+            }
+
+            selectNextLesson(currentTopicId) {
+                const currentTopicIndex = this.topicMap.get(currentTopicId);
+
+                // Epsilon-greedy policy
+                if (Math.random() < this.epsilon || currentTopicIndex === undefined) {
+                    // Exploration: choose a random lesson
+                    const nextTopicIndex = Math.floor(Math.random() * this.numTopics);
+                    const nextTopic = this.topics[nextTopicIndex];
+                    const nextDifficulty = difficultyMap[nextTopic.level];
+                    return { topicId: nextTopic.id, difficulty: nextDifficulty, reason: "🤖 <strong>AI says:</strong> Let's try something new to broaden your skills!" };
+                } else {
+                    // Exploitation: choose the best known action
+                    const qValuesForState = this.qTable[currentTopicIndex];
+                    let bestAction = { topicIndex: 0, difficulty: 0, qValue: -Infinity };
+
+                    for (let t = 0; t < this.numTopics; t++) {
+                        for (let d = 0; d < this.numDifficultyLevels; d++) {
+                            if (qValuesForState[t][d] > bestAction.qValue) {
+                                bestAction = { topicIndex: t, difficulty: d, qValue: qValuesForState[t][d] };
+                            }
+                        }
+                    }
+                    
+                    const nextTopic = this.topics[bestAction.topicIndex];
+                    let reason = this.getReasonForSelection(currentTopicIndex, bestAction.topicIndex);
+                    return { topicId: nextTopic.id, difficulty: bestAction.difficulty, reason: `🤖 <strong>AI says:</strong> ${reason}` };
+                }
+            }
+            
+            getReasonForSelection(currentTopicIndex, nextTopicIndex) {
+                 const currentProficiency = this.userProficiency[currentTopicIndex];
+                 const nextProficiency = this.userProficiency[nextTopicIndex];
+
+                 if (nextProficiency < 0.4) {
+                    return `Based on your progress, this looks like a great topic to build up your foundation. Let's tackle it!`;
+                 }
+                 if (currentProficiency > 0.8 && nextProficiency > 0.8) {
+                    return `You're mastering this area! Let's try a related advanced topic to keep the momentum going.`;
+                 }
+                 return `Considering your recent performance, this next lesson is the optimal step for your learning path.`
+            }
+
+            update(lastTopicId, nextTopicId, nextDifficulty, userScore) {
+                const lastTopicIndex = this.topicMap.get(lastTopicId);
+                const nextTopicIndex = this.topicMap.get(nextTopicId);
+                if(lastTopicIndex === undefined) return; // Skip update if there's no previous state
+
+                // Reward is based on performance
+                const reward = userScore === 1 ? 1.0 : -0.5;
+
+                // Q-learning update
+                const currentQ = this.qTable[lastTopicIndex][nextTopicIndex][nextDifficulty];
+                
+                // Find max Q for the next state
+                let maxFutureQ = -Infinity;
+                const nextQ_values = this.qTable[nextTopicIndex];
+                for(let i=0; i<this.numTopics; i++){
+                    for(let j=0; j<this.numDifficultyLevels; j++){
+                        if(nextQ_values[i][j] > maxFutureQ){
+                            maxFutureQ = nextQ_values[i][j];
+                        }
+                    }
+                }
+
+                const newQ = currentQ + this.learningRate * (reward + this.discountFactor * maxFutureQ - currentQ);
+                this.qTable[lastTopicIndex][nextTopicIndex][nextDifficulty] = newQ;
+
+                // Update user proficiency on the *last* topic they were tested on
+                const proficiencyChange = userScore === 1 ? 0.1 : -0.05;
+                this.userProficiency[lastTopicIndex] = Math.max(0, Math.min(1, this.userProficiency[lastTopicIndex] + proficiencyChange));
+                
+                // Decay epsilon to reduce exploration over time
+                this.epsilon = Math.max(0.05, this.epsilon * 0.995);
+            }
+        }
+
+        // --- UI INITIALIZATION & NAVIGATION ---
+        function initializeApp() {
+            document.querySelectorAll('.nav-tab').forEach(tab => tab.addEventListener('click', () => showSection(tab.dataset.section, tab)));
+            document.getElementById('startJourney').addEventListener('click', startLearningJourney);
+        }
+
+        function showSection(sectionName, clickedTab) {
+            document.querySelectorAll('.content-section').forEach(section => section.classList.remove('active'));
+            document.querySelectorAll('.nav-tab').forEach(tab => tab.classList.remove('active'));
+            document.getElementById(sectionName).classList.add('active');
+            if (clickedTab) clickedTab.classList.add('active');
+        }
+        
+        // --- CORE LOGIC ---
+        function startLearningJourney() {
+            const goalSelect = document.getElementById('goal');
+            const relevantLessons = lessonDatabase.filter(l => l.goal === goalSelect.value);
+
+            adaptiveEngine = new AdaptiveCurriculumEngine(relevantLessons, levelMap.length);
+            
+            userProfile = {
+                goal: goalSelect.value,
+                language: 'Japanese',
+                stats: { dayStreak: 1, wordsLearned: 0 }
+            };
+
+            // First lesson has no prior state
+            currentLesson = adaptiveEngine.selectNextLesson(null);
+            
+            generateLearningHub();
+            renderProgress();
+            showSection('learning', document.querySelector('[data-section="learning"]'));
+        }
+
+        function generateLearningHub() {
+            const hubContent = document.getElementById('learningHubContent');
+            const lesson = adaptiveEngine.topics.find(t => t.id === currentLesson.topicId);
+            const reason = currentLesson.reason;
+
+            if (!lesson) {
+                hubContent.innerHTML = `<div class="adaptive-feedback">You've mastered all content for this goal! Try another.</div>`;
+                return;
+            }
+
+            hubContent.innerHTML = `
+                <div class="adaptive-feedback">${reason}</div>
+                <div class="lesson-player">
+                    <h3>🎯 Daily Challenge: ${lesson.skill.charAt(0).toUpperCase() + lesson.skill.slice(1)} (${lesson.level})</h3>
+                    <div style="background: white; padding: 20px; border-radius: 10px; margin: 15px 0;">
+                        <h4>✏️ Your Task</h4>
+                        <p style="font-size: 1.2em; margin: 15px 0;">${lesson.question}</p>
+                        <div class="form-group">
+                            <input type="text" id="taskInput" class="form-control" placeholder="Type your answer here in Romaji..." data-answer="${lesson.answer}">
+                        </div>
+                        <div id="task-result"></div>
+                    </div>
+                    <div style="text-align: center; margin-top: 20px;">
+                        <button class="btn-primary" id="completeTaskBtn">Check Answer</button>
+                    </div>
+                </div>
+            `;
+            document.getElementById('completeTaskBtn').addEventListener('click', completeTask);
+            document.getElementById('taskInput').addEventListener('keydown', (e) => {
+                if (e.key === 'Enter') completeTask();
+            });
+        }
+
+        function completeTask() {
+            const input = document.getElementById('taskInput');
+            const resultDiv = document.getElementById('task-result');
+            const button = document.getElementById('completeTaskBtn');
+
+            const userAnswer = input.value.trim().toLowerCase();
+            const correctAnswer = input.dataset.answer.toLowerCase();
+            const userScore = (userAnswer === correctAnswer) ? 1.0 : 0.0;
+            
+            if (userScore === 1.0) {
+                resultDiv.innerHTML = `✅ Correct! Well done.`;
+                resultDiv.className = 'correct';
+                userProfile.stats.wordsLearned += correctAnswer.split(' ').length;
+            } else {
+                resultDiv.innerHTML = `❌ Not quite. The correct answer is: <strong>"${input.dataset.answer}"</strong>`;
+                resultDiv.className = 'incorrect';
+            }
+
+            // The core AI update step
+            const lastLessonId = currentLesson.topicId;
+            const nextLesson = adaptiveEngine.selectNextLesson(lastLessonId);
+            adaptiveEngine.update(lastLessonId, nextLesson.topicId, nextLesson.difficulty, userScore);
+            currentLesson = nextLesson;
+
+            button.textContent = 'Next AI Lesson...';
+            button.onclick = generateLearningHub;
+            input.disabled = true;
+
+            renderProgress();
+        }
+
+        // --- UI RENDERING ---
+        function renderProgress() {
+            const progressContent = document.getElementById('progressContent');
+            if (!userProfile || !adaptiveEngine) {
+                 progressContent.innerHTML = `<p style="text-align:center;">Your progress will be shown here once you begin your lessons.</p>`;
+                 return;
+            }
+            const { stats } = userProfile;
+
+            progressContent.innerHTML = `
+                <div class="stats-grid">
+                    <div class="stat-card"><div class="stat-number">${stats.dayStreak}</div><div>Day Streak</div></div>
+                    <div class="stat-card"><div class="stat-number">${stats.wordsLearned}</div><div>Words Learned</div></div>
+                    <div class="stat-card"><div class="stat-number">${adaptiveEngine.epsilon.toFixed(2)}</div><div>AI Exploration Rate</div></div>
+                </div>
+                <div style="background: white; padding: 25px; border-radius: 15px; margin-top: 20px;">
+                    <h3>📊 AI-Assessed Topic Mastery</h3>
+                    <p style="text-align:center; color: #666; margin-bottom: 20px;">The AI's current understanding of your proficiency on each topic.</p>
+                    <canvas id="progressChart"></canvas>
+                </div>`;
+            
+            const topicLabels = adaptiveEngine.topics.map(t => t.question);
+            const proficiencyData = adaptiveEngine.userProficiency;
+
+            const ctx = document.getElementById('progressChart').getContext('2d');
+            if(progressChart) {
+                progressChart.destroy();
+            }
+            progressChart = new Chart(ctx, {
+                type: 'radar',
+                data: {
+                    labels: topicLabels,
+                    datasets: [{
+                        label: 'Mastery',
+                        data: proficiencyData.map(p => p * 100), // convert to percentage
+                        fill: true,
+                        backgroundColor: 'rgba(102, 126, 234, 0.2)',
+                        borderColor: 'rgb(102, 126, 234)',
+                        pointBackgroundColor: 'rgb(102, 126, 234)',
+                        pointBorderColor: '#fff',
+                        pointHoverBackgroundColor: '#fff',
+                        pointHoverBorderColor: 'rgb(102, 126, 234)'
+                    }]
+                },
+                options: {
+                    elements: {
+                        line: {
+                            borderWidth: 3
+                        }
+                    },
+                    scales: {
+                        r: {
+                            angleLines: { display: false },
+                            suggestedMin: 0,
+                            suggestedMax: 100,
+                            ticks: {
+                                backdropColor: 'transparent',
+                                color: '#999'
+                            }
+                        }
+                    },
+                    plugins: {
+                        legend: { display: false },
+                         tooltip: {
+                            callbacks: {
+                                label: function(context) {
+                                    let label = context.dataset.label || '';
+                                    if (label) { label += ': '; }
+                                    if (context.parsed.r !== null) {
+                                        label += Math.round(context.parsed.r) + '%';
+                                    }
+                                    return label;
+                                }
+                            }
+                        }
+                    }
+                }
+            });
+        }
+
+        initializeApp();
+    });
+    </script>
+</body>
+</html>
